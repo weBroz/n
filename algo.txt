@@ -1,0 +1,250 @@
+================================================================================
+                    NETWORK LAB EXAM - ALGORITHMS (PROGRAMS 1 TO 6)
+================================================================================
+
+--------------------------------------------------------------------------------
+PROGRAM 1: MATRIX TYPE CLASSIFICATION (TCP - CLIENT & SERVER)
+--------------------------------------------------------------------------------
+Aim:
+To create a TCP client-server application where the client sends an N x N matrix
+to the server, and the server classifies it as Upper Triangular, Lower Triangular,
+Diagonal Matrix, or Neither.
+
+ALGORITHM - SERVER:
+Step 1:  Start the program.
+Step 2:  Create a TCP socket using socket(AF_INET, SOCK_STREAM, 0).
+Step 3:  Define server address structure (AF_INET, port 8080, INADDR_ANY).
+Step 4:  Bind socket to the port using bind().
+Step 5:  Listen for incoming connections using listen().
+Step 6:  Accept connection from client using accept(), which returns client socket 'c'.
+Step 7:  Read matrix dimension 'n' and 2D matrix array 'a' from client using read().
+Step 8:  Initialize classification flags: upper = 1, lower = 1, diagonal = 1.
+Step 9:  Iterate through the matrix using nested loops (i from 0 to n-1, j from 0 to n-1):
+         a. If (i > j && a[i][j] != 0), set upper = 0.
+         b. If (i < j && a[i][j] != 0), set lower = 0.
+         c. If (i != j && a[i][j] != 0), set diagonal = 0.
+Step 10: Determine matrix type:
+         - If diagonal == 1  --> "Diagonal Matrix"
+         - Else if upper == 1 --> "Upper Triangular"
+         - Else if lower == 1 --> "Lower Triangular"
+         - Else               --> "Neither"
+Step 11: Send result string back to client using write().
+Step 12: Close client socket 'c' and listening socket 's' using close().
+Step 13: Stop.
+
+ALGORITHM - CLIENT:
+Step 1:  Start the program.
+Step 2:  Create a TCP socket using socket(AF_INET, SOCK_STREAM, 0).
+Step 3:  Define server address structure (AF_INET, port 8080, IP "127.0.0.1").
+Step 4:  Connect to the server using connect().
+Step 5:  Prompt and read matrix dimension 'n' from user using scanf().
+Step 6:  Generate an N x N matrix with random values (rand() % 50 + 1) and print it.
+Step 7:  Send dimension 'n' and matrix array 'a' to server using write().
+Step 8:  Read the result string from server using read().
+Step 9:  Display the classified matrix type.
+Step 10: Close socket using close().
+Step 11: Stop.
+
+
+--------------------------------------------------------------------------------
+PROGRAM 2: CHAT ABBREVIATION EXPANDER (UDP - CLIENT & SERVER)
+--------------------------------------------------------------------------------
+Aim:
+To create a connectionless UDP client-server program where the client sends a
+sentence containing chat short forms (e.g., tbh, idk, lol), and the server expands
+them into full phrases.
+
+ALGORITHM - SERVER:
+Step 1:  Start the program.
+Step 2:  Create a UDP socket using socket(AF_INET, SOCK_DGRAM, 0).
+Step 3:  Configure server address structure (AF_INET, port 8080, INADDR_ANY).
+Step 4:  Bind the socket to the port using bind().
+Step 5:  Receive the input sentence from client using recvfrom().
+Step 6:  Null-terminate the received message string.
+Step 7:  Tokenize the message into words using strtok(msg, " ,.!?;").
+Step 8:  While token is not NULL:
+         a. Compare token with known abbreviations using strcmp():
+            - "tbh"  --> append "to be honest "
+            - "ig"   --> append "I guess "
+            - "btw"  --> append "by the way "
+            - "atm"  --> append "at the moment "
+            - "irl"  --> append "in real life "
+            - "lol"  --> append "laughing out loud "
+            - "asap" --> append "as soon as possible "
+            - "omg"  --> append "oh my god "
+            - "ttyl" --> append "talk to you later "
+            - "idk"  --> append "I don't know "
+            - "nvm"  --> append "never mind "
+            - Default: append original token + " "
+         b. Fetch next token using strtok(NULL, " ,.!?;").
+Step 9:  Send the translated result string back to client using sendto().
+Step 10: Close socket using close().
+Step 11: Stop.
+
+ALGORITHM - CLIENT:
+Step 1:  Start the program.
+Step 2:  Create a UDP socket using socket(AF_INET, SOCK_DGRAM, 0).
+Step 3:  Configure server address structure (AF_INET, port 8080, IP "127.0.0.1").
+Step 4:  Read input sentence from user using fgets().
+Step 5:  Send sentence to server using sendto().
+Step 6:  Receive translated sentence from server using recvfrom().
+Step 7:  Display the translated sentence.
+Step 8:  Close socket using close().
+Step 9:  Stop.
+
+
+--------------------------------------------------------------------------------
+PROGRAM 3: MULTI-USER CHAT ROOM USING SELECT() & FORK() (TCP)
+--------------------------------------------------------------------------------
+Aim:
+To implement a multi-client broadcast chat room where multiple users can join,
+exchange messages simultaneously, and leave the chat.
+
+ALGORITHM - SERVER (Uses select() for I/O multiplexing):
+Step 1:  Start the program.
+Step 2:  Create master TCP socket using socket(AF_INET, SOCK_STREAM, 0).
+Step 3:  Bind master socket to port 8080 and listen for connections using listen(s, 10).
+Step 4:  Initialize client array clients[10] to 0.
+Step 5:  Enter an infinite loop while(1):
+         a. Clear file descriptor set using FD_ZERO(&fds).
+         b. Add master socket 's' to set using FD_SET(s, &fds).
+         c. Add all active client sockets to set using FD_SET(clients[i], &fds).
+         d. Call select(max+1, &fds, NULL, NULL, NULL) to wait for socket activity.
+         e. IF master socket is set (FD_ISSET(s, &fds)):
+            - Accept incoming connection: c = accept().
+            - Receive client's username using recv().
+            - Store 'c' in the clients array.
+            - Broadcast "[Name] joined the chat" to all active clients using send().
+         f. IF client socket is set (FD_ISSET(clients[i], &fds)):
+            - Receive message using recv().
+            - If client disconnected or message is "exit":
+              * Broadcast "[Name] left the chat".
+              * Close socket and reset clients[i] = 0.
+            - Else:
+              * Format message as "[Name]: [Message]".
+              * Broadcast formatted message to all other connected clients using send().
+Step 6:  Close master socket and stop.
+
+ALGORITHM - CLIENT (Uses fork() for simultaneous Send & Receive):
+Step 1:  Start the program.
+Step 2:  Create TCP socket using socket(AF_INET, SOCK_STREAM, 0).
+Step 3:  Connect to server at 127.0.0.1:8080 using connect().
+Step 4:  Prompt user for their name and send it to server using send().
+Step 5:  Call fork() to split into parent and child processes:
+         - CHILD PROCESS (Receiver):
+           * Run infinite loop while recv(s, msg, ...) > 0.
+           * Print received incoming broadcast messages on console.
+           * When server closes connection, exit child process.
+         - PARENT PROCESS (Sender):
+           * Run infinite loop reading messages from user with fgets().
+           * Send message to server using send().
+           * If message is "exit\n", break loop.
+           * Shutdown socket, close socket, wait for child using wait(NULL).
+Step 6:  Close socket and stop.
+
+
+--------------------------------------------------------------------------------
+PROGRAM 4: CONCURRENT DAYTIME SERVER (UDP - USING FORK())
+--------------------------------------------------------------------------------
+Aim:
+To create a concurrent connectionless daytime service where clients request the
+server's current date and time, and the server handles each request using fork().
+
+ALGORITHM - SERVER:
+Step 1:  Start the program.
+Step 2:  Create UDP socket using socket(AF_INET, SOCK_DGRAM, 0).
+Step 3:  Bind socket to port 8080 and INADDR_ANY using bind().
+Step 4:  Ignore zombie child processes using signal(SIGCHLD, SIG_IGN).
+Step 5:  Enter infinite loop while(1):
+         a. Receive request packet from client using recvfrom().
+         b. Call fork() to handle request concurrently:
+            - IF CHILD PROCESS (fork() == 0):
+              1. Get current calendar time using time(&t).
+              2. Convert time to formatted string using ctime(&t).
+              3. Send time string back to client using sendto().
+              4. Close child's socket descriptor and terminate child (return 0).
+            - IF PARENT PROCESS:
+              1. Immediately loop back to wait for next client request.
+Step 6:  Stop.
+
+ALGORITHM - CLIENT:
+Step 1:  Start the program.
+Step 2:  Create UDP socket using socket(AF_INET, SOCK_DGRAM, 0).
+Step 3:  Configure server address structure (AF_INET, port 8080, IP "127.0.0.1").
+Step 4:  Send request string ("TIME") to server using sendto().
+Step 5:  Receive current date/time string from server using recvfrom().
+Step 6:  Display the server time on console.
+Step 7:  Close socket using close().
+Step 8:  Stop.
+
+
+--------------------------------------------------------------------------------
+PROGRAM 5: CONCURRENT FILE TRANSFER SERVER (TCP - USING FORK())
+--------------------------------------------------------------------------------
+Aim:
+To implement a concurrent TCP file server that accepts a filename from a client,
+spawns a child process using fork(), and sends the file contents (or error) back.
+
+ALGORITHM - SERVER:
+Step 1:  Start the program.
+Step 2:  Create master TCP socket using socket(AF_INET, SOCK_STREAM, 0).
+Step 3:  Bind socket to port 8080 and listen for connections using listen(s, 5).
+Step 4:  Enter infinite loop while(1):
+         a. Accept incoming client connection: c = accept().
+         b. Call fork() to create child process:
+            - IF CHILD PROCESS (fork() == 0):
+              1. Close master listening socket 's'.
+              2. Receive requested filename from client using recv().
+              3. Strip newline character from filename.
+              4. Attempt to open file in read mode: fp = fopen(file, "r").
+              5. If fp == NULL (file does not exist):
+                 - Format message: "PID: <getpid()>\nFile not found".
+              6. Else (file exists):
+                 - Format header: "PID: <getpid()>\n".
+                 - Read lines from file using fgets() and append to message buffer.
+                 - Close file using fclose(fp).
+              7. Send message buffer to client using send().
+              8. Close client socket 'c' and exit child (return 0).
+            - IF PARENT PROCESS:
+              1. Close client socket 'c'.
+              2. Loop back to accept next client.
+Step 5:  Stop.
+
+ALGORITHM - CLIENT:
+Step 1:  Start the program.
+Step 2:  Create TCP socket using socket(AF_INET, SOCK_STREAM, 0).
+Step 3:  Connect to server at 127.0.0.1:8080 using connect().
+Step 4:  Prompt user for filename and read it using scanf().
+Step 5:  Send filename to server using send().
+Step 6:  Receive server reply (child PID + file contents or error) using recv().
+Step 7:  Print received response on console.
+Step 8:  Close socket using close().
+Step 9:  Stop.
+
+
+--------------------------------------------------------------------------------
+PROGRAM 6: RAW SOCKET PACKET SNIFFER (PACKET ANALYZER)
+--------------------------------------------------------------------------------
+Aim:
+To create a packet sniffer using raw sockets to capture and inspect live TCP/IP
+packets passing through the network interface.
+
+ALGORITHM:
+Step 1:  Start the program.
+Step 2:  Create a raw socket using socket(AF_INET, SOCK_RAW, IPPROTO_TCP).
+         (Note: Requires root / sudo privileges).
+Step 3:  Check if socket creation succeeded. If s < 0, print "Socket error" and exit.
+Step 4:  Print "Capturing Packets...".
+Step 5:  Enter infinite loop while(1):
+         a. Receive incoming raw packet from interface: recv(s, buffer, sizeof(buffer), 0).
+         b. Map the packet buffer to the IP header structure:
+            struct iphdr *ip = (struct iphdr *)buffer;
+         c. Extract Source IP address from ip->saddr and convert to string format
+            using inet_ntoa(*(struct in_addr *)&ip->saddr).
+         d. Extract Destination IP address from ip->daddr and convert to string format
+            using inet_ntoa(*(struct in_addr *)&ip->daddr).
+         e. Extract Protocol number from ip->protocol (e.g., 6 for TCP).
+         f. Print Source IP, Destination IP, and Protocol number.
+Step 6:  Close raw socket using close().
+Step 7:  Stop.
+================================================================================
